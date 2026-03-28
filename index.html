@@ -865,54 +865,90 @@
   }
 
   function getAIRecommendation() {
-    answers.extra = document.getElementById('extraInfo').value;
-    document.getElementById('step4').classList.remove('active');
-    document.getElementById('aiLoading').classList.add('visible');
+  answers.extra = document.getElementById('extraInfo').value;
+  document.getElementById('step4').classList.remove('active');
+  document.getElementById('aiResult').classList.remove('visible');
+  document.getElementById('aiResultText').innerText = '';
+  document.getElementById('aiLoading').classList.add('visible');
 
-    var opportunities = [
-      'Students in Action (City of Doral) - city events, community activities, Doral FL',
-      'Miami-Dade Animal Services - animal care, adoption events, shelter tasks',
-      'Zoo Miami Teen Volunteer - visitors, conservation, scheduled shifts',
-      'Ronald McDonald House - meal prep, donation drives, families with sick children',
-      'Feeding South Florida - sort and pack food, multiple shifts weekly',
-      'Miami Childrens Museum - educational programs, events, guest services for kids',
-      'United Way Miami - education support, food distribution, various projects',
-      'Special Olympics Florida - sports events for athletes with intellectual disabilities',
-      'Camillus House - serve meals, donations, support homeless individuals',
-      'Miami Rescue Mission - food distribution, outreach, donation organization',
-      'Habitat for Humanity Greater Miami - build homes, community development',
-      'Fairchild Tropical Botanic Garden - environmental programs, nature education',
-      'Pelican Harbor Seabird Station - wildlife rescue, environmental education',
-      'Books and Books Literacy Foundation - literacy programs, reading events',
-      'Chapman Partnership - donation drives, meal programs, support services',
-      'Humane Society of Greater Miami - animal care, adoptions, shelter tasks',
-      'PAWS4you Rescue - animal care, adoption events, shelter support'
-    ];
+  var opportunities = [
+    'Students in Action (City of Doral) - city events, community activities, Doral FL',
+    'Miami-Dade Animal Services - animal care, adoption events, shelter tasks',
+    'Zoo Miami Teen Volunteer - visitors, conservation, scheduled shifts',
+    'Ronald McDonald House - meal prep, donation drives, families with sick children',
+    'Feeding South Florida - sort and pack food, multiple shifts weekly',
+    'Miami Childrens Museum - educational programs, events, guest services for kids',
+    'United Way Miami - education support, food distribution, various projects',
+    'Special Olympics Florida - sports events for athletes with intellectual disabilities',
+    'Camillus House - serve meals, donations, support homeless individuals',
+    'Miami Rescue Mission - food distribution, outreach, donation organization',
+    'Habitat for Humanity Greater Miami - build homes, community development',
+    'Fairchild Tropical Botanic Garden - environmental programs, nature education',
+    'Pelican Harbor Seabird Station - wildlife rescue, environmental education',
+    'Books and Books Literacy Foundation - literacy programs, reading events',
+    'Chapman Partnership - donation drives, meal programs, support services',
+    'Humane Society of Greater Miami - animal care, adoptions, shelter tasks',
+    'PAWS4you Rescue - animal care, adoption events, shelter support'
+  ];
 
-    var prompt = 'You are a helpful volunteer advisor for high school students in Doral, Miami. A student answered these questions:\n' +
-      'Career interest: ' + answers.career + '\n' +
-      'Preferred work type: ' + answers.work + '\n' +
-      'Hours needed: ' + answers.hours + '\n' +
-      'Team preference: ' + answers.team + '\n' +
-      'Extra info: ' + (answers.extra || 'none') + '\n\n' +
-      'Based on their answers, recommend the TOP 3 most suitable volunteer opportunities from this list and explain WHY each one fits them personally. Be warm, encouraging, and specific. Keep it concise.\n\nOpportunities:\n' +
-      opportunities.join('\n');
+  var prompt =
+    'You are a helpful volunteer advisor for high school students in Doral, Miami.\n' +
+    'A student answered these questions:\n' +
+    'Career interest: ' + (answers.career || 'Not provided') + '\n' +
+    'Preferred work type: ' + (answers.work || 'Not provided') + '\n' +
+    'Hours needed: ' + (answers.hours || 'Not provided') + '\n' +
+    'Team preference: ' + (answers.team || 'Not provided') + '\n' +
+    'Extra info: ' + (answers.extra || 'none') + '\n\n' +
+    'Based on their answers, recommend the TOP 3 most suitable volunteer opportunities from this list and explain WHY each one fits them personally.\n' +
+    'Be warm, encouraging, and specific.\n' +
+    'Format the answer as:\n' +
+    '1. Opportunity Name — why it fits\n' +
+    '2. Opportunity Name — why it fits\n' +
+    '3. Opportunity Name — why it fits\n\n' +
+    'Opportunities:\n' + opportunities.join('\n');
 
-    fetch('/api/quiz-recommend', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: prompt })
-    }).then(function(res) { return res.json(); }).then(function(data) {
-      var text = data.text || '';
-      document.getElementById('aiLoading').classList.remove('visible');
-      document.getElementById('aiResultText').innerText = text;
-      document.getElementById('aiResult').classList.add('visible');
-    }).catch(function() {
-      document.getElementById('aiLoading').classList.remove('visible');
-      document.getElementById('aiResultText').innerText = 'The AI recommender works once the site is live online. Based on your answers, browse the opportunities above and look for ones that match your interests!';
-      document.getElementById('aiResult').classList.add('visible');
+  fetch('/api/quiz-recommend', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt: prompt })
+  })
+  .then(function(res) {
+    return res.json().then(function(data) {
+      return { ok: res.ok, status: res.status, data: data };
     });
-  }
+  })
+  .then(function(result) {
+    document.getElementById('aiLoading').classList.remove('visible');
+
+    if (!result.ok) {
+      console.error('API error:', result.data);
+      document.getElementById('aiResultText').innerText =
+        'Sorry, the AI recommender could not load right now. Please try again in a moment.';
+      document.getElementById('aiResult').classList.add('visible');
+      return;
+    }
+
+    var text = (result.data.text || '').trim();
+
+    if (!text) {
+      console.error('Empty AI response:', result.data);
+      document.getElementById('aiResultText').innerText =
+        'No recommendations were returned. Please try again.';
+      document.getElementById('aiResult').classList.add('visible');
+      return;
+    }
+
+    document.getElementById('aiResultText').innerText = text;
+    document.getElementById('aiResult').classList.add('visible');
+  })
+  .catch(function(error) {
+    console.error('Fetch failed:', error);
+    document.getElementById('aiLoading').classList.remove('visible');
+    document.getElementById('aiResultText').innerText =
+      'There was a connection problem loading your recommendations. Please try again.';
+    document.getElementById('aiResult').classList.add('visible');
+  });
+}
 
   function restartQuiz() {
     answers = {};
