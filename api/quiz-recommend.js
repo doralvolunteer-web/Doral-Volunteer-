@@ -37,7 +37,8 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       return res.status(response.status).json({
-        error: data.error || data
+        error: data?.error?.message || data?.error || 'Anthropic API error',
+        raw: data
       });
     }
 
@@ -48,7 +49,7 @@ export default async function handler(req, res) {
           .join('')
       : '';
 
-    return res.status(200).json({ text });
+    return res.status(200).json({ text, raw: data });
   } catch (error) {
     return res.status(500).json({
       error: error.message || 'Server error'
