@@ -13,14 +13,17 @@ export default async function handler(req, res) {
     const prompt = body?.prompt;
 
     if (!prompt || typeof prompt !== 'string') {
-      return res.status(400).json({ 
-  error: 'Missing prompt',
-  receivedBody: req.body,
-  promptValue: prompt
-});
+      return res.status(400).json({
+        error: 'Missing prompt',
+        receivedBody: body || null,
+        promptValue: prompt || null
+      });
+    }
 
     if (!process.env.ANTHROPIC_API_KEY) {
-      return res.status(500).json({ error: 'Missing ANTHROPIC_API_KEY' });
+      return res.status(500).json({
+        error: 'Missing ANTHROPIC_API_KEY'
+      });
     }
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -31,7 +34,7 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5-20250929',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1000,
         messages: [
           {
@@ -58,7 +61,10 @@ export default async function handler(req, res) {
           .join('')
       : '';
 
-    return res.status(200).json({ text, raw: data });
+    return res.status(200).json({
+      text,
+      raw: data
+    });
   } catch (error) {
     return res.status(500).json({
       error: error.message || 'Server error'
