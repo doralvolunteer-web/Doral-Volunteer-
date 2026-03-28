@@ -13,8 +13,11 @@ export default async function handler(req, res) {
     const prompt = body?.prompt;
 
     if (!prompt || typeof prompt !== 'string') {
-      return res.status(400).json({ error: 'Missing prompt', receivedBody: body || null });
-    }
+      return res.status(400).json({ 
+  error: 'Missing prompt',
+  receivedBody: req.body,
+  promptValue: prompt
+});
 
     if (!process.env.ANTHROPIC_API_KEY) {
       return res.status(500).json({ error: 'Missing ANTHROPIC_API_KEY' });
