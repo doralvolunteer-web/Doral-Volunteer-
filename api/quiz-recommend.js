@@ -1,20 +1,29 @@
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+export const runtime = 'nodejs';
 
+export async function GET() {
+  return Response.json(
+    { error: 'Method not allowed' },
+    { status: 405 }
+  );
+}
+
+export async function POST(request) {
   try {
-    const { prompt } = req.body;
+    const body = await request.json();
+    const prompt = body?.prompt;
 
     if (!prompt || typeof prompt !== 'string') {
-      return res.status(400).json({ error: 'Missing prompt' });
+      return Response.json({ error: 'Missing prompt' }, { status: 400 });
     }
 
     if (!process.env.ANTHROPIC_API_KEY) {
-      return res.status(500).json({ error: 'Missing ANTHROPIC_API_KEY' });
+      return Response.json(
+        { error: 'Missing ANTHROPIC_API_KEY' },
+        { status: 500 }
+      );
     }
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -33,13 +42,16 @@ export default async function handler(req, res) {
       })
     });
 
-    const data = await response.json();
+    const data = await anthropicResponse.json();
 
-    if (!response.ok) {
-      return res.status(response.status).json({
-        error: data?.error?.message || data?.error || 'Anthropic API error',
-        raw: data
-      });
+    if (!anthropicResponse.ok) {
+      return Response.json(
+        {
+          error: data?.error?.message || data?.error || 'Anthropic API error',
+          raw: data
+        },
+        { status: anthropicResponse.status }
+      );
     }
 
     const text = Array.isArray(data.content)
@@ -49,10 +61,13 @@ export default async function handler(req, res) {
           .join('')
       : '';
 
-    return res.status(200).json({ text, raw: data });
+    return Response.json({ text, raw: data }, { status: 200 });
   } catch (error) {
-    return res.status(500).json({
-      error: error.message || 'Server error'
-    });
+    return Response.json(
+      {
+        error: error?.message || 'Server error'
+      },
+      { status: 500 }
+    );
   }
 }
